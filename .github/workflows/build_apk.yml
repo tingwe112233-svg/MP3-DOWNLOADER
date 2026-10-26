@@ -1,0 +1,46 @@
+name: Build & Auto-Release APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write 
+
+    steps:
+      - name: Checkout Kode
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Beri Izin Eksekusi Gradle
+        run: chmod +x gradlew
+
+      - name: Build APK Debug
+        run: ./gradlew assembleDebug
+
+      - name: Ganti Nama File APK
+        run: |
+          mkdir -p release-apk
+          mv app/build/outputs/apk/debug/app-debug.apk release-apk/YT-MP3-Downloader-v1.${{ github.run_number }}.apk
+
+      - name: Buat GitHub Release & Upload APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.${{ github.run_number }}
+          name: "Rilis APK v1.${{ github.run_number }}"
+          body: "🎉 Build otomatis berhasil! Silakan unduh file APK di bawah tab Assets untuk di-install ke HP Android."
+          files: release-apk/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
