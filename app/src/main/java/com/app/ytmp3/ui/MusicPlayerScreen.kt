@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleOwner
 import coil.compose.AsyncImage
 import com.app.ytmp3.downloader.MP3Downloader
 import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer
@@ -57,7 +58,6 @@ fun MusicPlayerScreen() {
     var searchQuery by remember { mutableStateOf("") }
     var selectedSongForDownload by remember { mutableStateOf<SongItem?>(null) }
 
-    // Launcher izin penyimpanan untuk Android 8 dan 9
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -97,11 +97,14 @@ fun MusicPlayerScreen() {
 
     Column(modifier = Modifier.fillMaxSize().background(Color(0xFF121212)).padding(16.dp)) {
         
-        // Pemutar Video YouTube Native
+        // Pemutar Video YouTube Native dengan Lifecycle Binding yang Aman
         Card(modifier = Modifier.fillMaxWidth().height(210.dp), shape = RoundedCornerShape(12.dp)) {
             AndroidView(
                 factory = { ctx ->
                     YouTubePlayerView(ctx).apply {
+                        if (ctx is LifecycleOwner) {
+                            ctx.lifecycle.addObserver(this)
+                        }
                         addYouTubePlayerListener(object : AbstractYouTubePlayerListener() {
                             override fun onReady(youTubePlayer: YouTubePlayer) {
                                 youtubePlayerInstance = youTubePlayer
@@ -116,7 +119,6 @@ fun MusicPlayerScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Kotak Pencarian Judul Lagu
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { searchQuery = it },
@@ -125,15 +127,13 @@ fun MusicPlayerScreen() {
             leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = Color(0xFF2E7D32), 
-                unfocusedBorderColor = Color.DarkGray, 
-                cursorColor = Color.White
+                unfocusedBorderColor = Color.DarkGray
             ),
             shape = RoundedCornerShape(50)
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Daftar Lagu
         LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(filteredSongs) { song ->
                 SongCardItem(
@@ -148,7 +148,6 @@ fun MusicPlayerScreen() {
         }
     }
 
-    // Dialog Pilihan Bitrate & Ukuran File
     selectedSongForDownload?.let { song ->
         BitrateSelectionDialog(
             song = song,
@@ -212,7 +211,6 @@ fun SongCardItem(song: SongItem, onPlayClick: () -> Unit, onDownloadClick: () ->
             modifier = Modifier.padding(8.dp).fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Sampul Album / Thumbnail
             AsyncImage(
                 model = song.thumbnailUrl,
                 contentDescription = "Cover",
@@ -220,7 +218,6 @@ fun SongCardItem(song: SongItem, onPlayClick: () -> Unit, onDownloadClick: () ->
                 contentScale = ContentScale.Crop
             )
 
-            // Tombol Download tepat di sebelah sampul
             IconButton(
                 onClick = onDownloadClick,
                 modifier = Modifier
@@ -231,13 +228,11 @@ fun SongCardItem(song: SongItem, onPlayClick: () -> Unit, onDownloadClick: () ->
                 Icon(Icons.Default.Download, contentDescription = "Download MP3", tint = Color.White, modifier = Modifier.size(20.dp))
             }
 
-            // Informasi Judul & Channel
             Column(modifier = Modifier.weight(1f).padding(horizontal = 4.dp)) {
                 Text(song.title, color = Color.White, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
                 Text(song.channel, color = Color.Gray, style = MaterialTheme.typography.bodySmall, maxLines = 1)
             }
 
-            // Tombol Play Video
             IconButton(onClick = onPlayClick) {
                 Icon(Icons.Default.PlayArrow, contentDescription = "Play", tint = Color(0xFFFF0000))
             }
