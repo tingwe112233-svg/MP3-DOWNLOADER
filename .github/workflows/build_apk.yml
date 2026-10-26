@@ -21,11 +21,21 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v3
+      - name: Auto-Generate Gradle Wrapper (Anti Missing gradlew Error)
+        run: |
+          if [ ! -f "gradlew" ]; then
+            echo "Gradlew tidak ditemukan. Membuat wrapper otomatis..."
+            wget -q https://services.gradle.org/distributions/gradle-8.5-bin.zip
+            unzip -q gradle-8.5-bin.zip
+            export PATH=$PWD/gradle-8.5/bin:$PATH
+            gradle wrapper --gradle-version 8.5
+          fi
 
       - name: Beri Izin Eksekusi Gradle
         run: chmod +x gradlew
+
+      - name: Setup Gradle Cache
+        uses: gradle/actions/setup-gradle@v3
 
       - name: Build APK Debug
         run: ./gradlew assembleDebug
@@ -40,7 +50,7 @@ jobs:
         with:
           tag_name: v1.${{ github.run_number }}
           name: "Rilis APK v1.${{ github.run_number }}"
-          body: "🎉 Build otomatis berhasil! Silakan unduh file APK di bawah tab Assets untuk di-install ke HP Android."
+          body: "🎉 Build otomatis berhasil 100% tanpa error! Silakan unduh file APK di bawah tab Assets untuk di-install ke HP Android."
           files: release-apk/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
